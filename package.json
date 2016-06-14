@@ -13,10 +13,7 @@
   ],
   "main": "generators\\index.js",
   "keywords": [
-    "yeoman-generator",
-    "azure",
-    "functions",
-    "azurefunctions"
+    "yeoman-generator"
   ],
   "dependencies": {
     "yeoman-generator": "^0.23.0",
@@ -43,7 +40,7 @@
       "mocha": true
     }
   },
-  "repository": "hhawkins/generator-azurefunctions",
+  "repository": "hhawkins/generator-azurefunctions.git",
   "scripts": {
     "prepublish": "gulp prepublish",
     "test": "gulp"
