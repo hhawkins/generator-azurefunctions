@@ -2,9 +2,11 @@
 var yeoman = require('yeoman-generator');
 var chalk = require('chalk');
 var yosay = require('yosay');
+var tmp = require('tmp');
 var ghdownload = require('github-download');
-var exec = require('exec');
-//var AzureFunctions = require('azure-functions')
+var Git = require('nodegit');
+var fs = require('fs');
+var _path = require('path');
 
 module.exports = yeoman.Base.extend({
   prompting: function () {
@@ -37,7 +39,8 @@ module.exports = yeoman.Base.extend({
     this.installDependencies();
   },
 
-  getAzureFunctionsCredentials: function () {
+  /*
+  _getAzureFunctionsCredentials: function () {
     if (this.answer.requestFunctionTemplates) {
       this.log('Lets check for templates...');
 
@@ -91,17 +94,41 @@ module.exports = yeoman.Base.extend({
       }.bind(this));
     }
   },
+  */
 
   getAzureFunctionsTemplates: function () {
-    /*
-    var azFunctions = new AzureFunctions(this.azure_functions_information.ResourceGroupName,
-    this.azure_functions_information.FunctionAppName, {
-        subscriptionId: this.azure_functions_information.SubscriptionId,
-        clientId: this.azure_functions_information.ClientId,
-        clientSecret: this.azure_functions_information.ClientSecret,
-        domain: this.azure_functions_information.Domain
-    });
+    if (this.answer.requestFunctionTemplates) {
+      var tempDir;
+      var tempPath;
+      var listOfFolders;
 
+      Git.Clone("https://github.com/Azure/azure-webjobs-sdk-templates", './gitcloneTest');
+      listOfFolders = fs.readdirSync('./gitcloneTest/Templates').filter(function(file) {
+        return fs.statSync(_path.join('./gitcloneTest/Templates', file)).isDirectory();
+      });
+
+      this.log('listOfFolders: ' + listOfFolders);
+
+      tmp.setGracefulCleanup();
+      tmp.dir(function _tempDirCreated(err, path, cleanupCallback) {
+        if (err) throw err;
+
+        tempPath = _path.resolve(_path.join(_path.resolve(path), 'azure-webjobs-sdk-templates'));
+        console.log('path: ' + path);
+        console.log('tempPath: ' + tempPath);
+        console.log('testing the path: ' + _path.join(_path.resolve(path), 'azure-webjobs-sdk-templates'))
+
+        Git.Clone("https://github.com/Azure/azure-webjobs-sdk-templates", tempPath + '/test');
+        listOfFolders = fs.readdirSync(tempPath + '/Templates').filter(function(file) {
+          return fs.statSync(_path.join(_path.resolve(path + '/Templates'), _path.join('azure-webjobs-sdk-templates', file))).isDirectory();
+        });
+
+        console.log(listOfFolders);
+
+      });
+    }
+
+    /*
     this.log('The request for ' + this.azure_functions_information.FunctionAppName + ' is complete!');
     return azFunctions.listFunctions('unittesthttp')
       .then(functionListing => {
