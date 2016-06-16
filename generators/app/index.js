@@ -5,6 +5,7 @@ var yosay = require('yosay');
 var tmp = require('tmp');
 var ghdownload = require('github-download');
 var Git = require('nodegit');
+var simpleGit = require('simple-git');
 var fs = require('fs');
 var _path = require('path');
 
@@ -29,10 +30,19 @@ module.exports = yeoman.Base.extend({
   },
 
   writing: function () {
+    this.directory(
+      this.templatePath('/Templates/'+ this.answer.templateToUse),
+      this.destinationPath('/CopiedTemplates/'+ this.answer.templateToUse)
+    )
+
+    /*
     this.fs.copy(
-      this.templatePath('dummyfile.txt'),
-      this.destinationPath('dummyfile.txt')
+      this.templatePath('./Templates/' + this.answer.templateToUse),
+      this.destinationPath('./TemplateOutput/' + this.answer.templateToUse)
+      // this.answer.templateToUse
     );
+    */
+  
   },
 
   install: function () {
@@ -102,12 +112,23 @@ module.exports = yeoman.Base.extend({
       var tempPath;
       var listOfFolders;
 
-      Git.Clone("https://github.com/Azure/azure-webjobs-sdk-templates", './gitcloneTest');
-      listOfFolders = fs.readdirSync('./gitcloneTest/Templates').filter(function(file) {
-        return fs.statSync(_path.join('./gitcloneTest/Templates', file)).isDirectory();
-      });
+      //simpleGit.then(function(clone('https://github.com/Azure/azure-webjobs-sdk-templates')), './gitcloneTest');
 
-      this.log('listOfFolders: ' + listOfFolders);
+/*
+      Git.Clone("https://github.com/Azure/azure-webjobs-sdk-templates", './gitcloneTest')
+        .catch(function(err) {
+          this.log(err);
+        });
+
+      listOfFolders = fs.readdirSync('./gitcloneTest/Templates')
+        .catch(function(err) {
+          this.log(err);
+        })
+        .filter(function(file) {
+          return fs.statSync(_path.join('./gitcloneTest/Templates', file)).isDirectory();
+      });
+*/
+      //this.log('listOfFolders: ' + listOfFolders);
 
       tmp.setGracefulCleanup();
       tmp.dir(function _tempDirCreated(err, path, cleanupCallback) {
@@ -117,14 +138,19 @@ module.exports = yeoman.Base.extend({
         console.log('path: ' + path);
         console.log('tempPath: ' + tempPath);
         console.log('testing the path: ' + _path.join(_path.resolve(path), 'azure-webjobs-sdk-templates'))
+        
+        Git.Clone('https://github.com/Azure/azure-webjobs-sdk-templates', tempPath + '/test')
+          .then(function() {
+              listOfFolders = fs.readdirSync(tempPath + '/Templates').filter(function(file) {
+                return fs.statSync(_path.join(_path.resolve(path + '/Templates'), _path.join('azure-webjobs-sdk-templates', file))).isDirectory();
+              });
+              console.log(listOfFolders);
+          });
+        
 
-        Git.Clone("https://github.com/Azure/azure-webjobs-sdk-templates", tempPath + '/test');
-        listOfFolders = fs.readdirSync(tempPath + '/Templates').filter(function(file) {
-          return fs.statSync(_path.join(_path.resolve(path + '/Templates'), _path.join('azure-webjobs-sdk-templates', file))).isDirectory();
-        });
-
+        /*
         console.log(listOfFolders);
-
+        */
       });
     }
 
@@ -135,5 +161,29 @@ module.exports = yeoman.Base.extend({
         console.log(String(functionListing));
     });
     */
+
+    return 1;
+  },
+
+  loadTemplatesIntoGenerator: function () {
+    var listOfFolders = fs.readdirSync('./gitcloneTest/Templates')
+      .filter(function(file) {
+        return fs.statSync(_path.join('./gitcloneTest/Templates', file)).isDirectory();
+    });
+
+    //this.log('listOfFolders: ' + listOfFolders);
+
+    var prompts = [{
+      type: 'rawlist',
+      name: 'templateToUse',
+      message: 'Select from one of the available templates...',
+      choices: listOfFolders,
+      default: 0
+    }];
+
+    return this.prompt(prompts).then(function (answer) {
+      // To access answer later use this.answer.(answer you need);
+      this.answer = answer;
+    }.bind(this));
   }
 });
