@@ -10,7 +10,7 @@ npm install -g yo
 npm install -g generator-azurefunctions
 ```
 
-Then generate your new project:
+Then generate your new Azure Functions project:
 
 ```bash
 yo azurefunctions
