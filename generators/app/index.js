@@ -14,8 +14,6 @@ module.exports = yeoman.Base.extend({
       'Welcome to the ' + chalk.red('Azure Functions') + ' generator!' 
     )); 
 
-    this.installDependencies();
-
     var prompts = [{ 
       type: 'confirm', 
       name: 'requestFunctionTemplates', 
