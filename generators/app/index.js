@@ -66,11 +66,16 @@ module.exports = yeoman.Base.extend({
           }
 
           var prompts = [{
-              type: 'list',
-              name: 'templateToUse',
-              message: 'Select from one of the available templates...',
-              choices: listOfTemplates,
-              default: 0
+            type: 'list',
+            name: 'templateToUse',
+            message: 'Select from one of the available templates...',
+            choices: listOfTemplates,
+            default: 0
+          }, {
+            type: 'input',
+            name: 'functionName',
+            message: 'Enter a name for your function...',
+            default: 'MyAzureFunction'
           }];
 
           return this.prompt(prompts).then(answer => {
@@ -78,7 +83,7 @@ module.exports = yeoman.Base.extend({
           });
         })
         .then(() => {
-          this._downloadTemplate(this.answer.templateToUse, listOfUrls);
+          this._downloadTemplate(this.answer.templateToUse, listOfUrls, this.answer.functionName);
         })
         .catch(err => {
           this.log('There was an error in searching for available templates...');
@@ -87,7 +92,7 @@ module.exports = yeoman.Base.extend({
     }
   },
 
-  _downloadTemplate: function (templateToUse, listOfUrls) {
+  _downloadTemplate: function (templateToUse, listOfUrls, functionName) {
     var options = {
       uri: listOfUrls[templateToUse],
       headers: {
@@ -95,27 +100,60 @@ module.exports = yeoman.Base.extend({
       },
       json: true
     };
+
+    this.log('Creating your function ' + functionName + '...');
     
     requestPromise(options)
       .then(files => {
-        for (let i = 0; i < files.length; i ++) {
-          var fileName = files[i]['name'];
-          var fileUrl = files[i]['download_url'];
-          request
-            .get(fileUrl)
-            .on('error', err => {
-              this.log('There was an error when downloading the file ' + fileName);
-              this.log(err);
-            })
-            .pipe(fs.createWriteStream(path.resolve(fileName)));
+        var pathToSaveFunction = path.resolve('./', functionName);
 
-          this.log('Downloading file ' + fileName + ' to:');
-          this.log(path.resolve(fileName));
-        }
+
+        fs.mkdir(pathToSaveFunction, err => {
+          if (err) {
+            if (err.code != 'EEXIST') {
+              throw err;
+            }
+          }
+
+          this.log('Location for your function:');
+          this.log(pathToSaveFunction);
+
+          for (let i = 0; i < files.length; i ++) {
+            var fileName = files[i]['name'];
+            var fileUrl = files[i]['download_url'];
+            request
+              .get(fileUrl)
+              .on('error', err => {
+                this.log('There was an error when downloading the file ' + fileName);
+                this.log(err);
+              })
+              .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
+
+            this.log('Downloading file ' + fileName + ' to:');
+            this.log(path.resolve(pathToSaveFunction, fileName));
+          }
+
+          return 1;
+        });
+        return this._configureTemplate(pathToSaveFunction);
       })
       .catch(err => {
         this.log('There was an error in searching for the files for the template ' + templateToUse);
         this.log(err);
       })
+  },
+
+  _configureTemplate: function(pathOfTemplate) {
+    this.log('Configuring Template...');
+    this.log('In path:');
+    this.log(pathOfTemplate);
+
+    var functionJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'function.json'), 'utf8').trim());
+    var metadataJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'metadata.json'), 'utf8').trim());
+
+    this.log(functionJSON['bindings']);
+    this.log(metadataJSON['userPrompt']);
+
+    return 1;
   }
 });
