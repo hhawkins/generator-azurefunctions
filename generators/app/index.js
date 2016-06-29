@@ -144,22 +144,22 @@ module.exports = yeoman.Base.extend({
   },
 
   _configureTemplate: function(pathOfTemplate) {
-    this.log('Configuring Template...');
-    this.log('In path:');
-    this.log(pathOfTemplate);
+    // this.log('Configuring Template...');
+    // this.log('In path:');
+    // this.log(pathOfTemplate);
 
-    var functionJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'function.json'), 'utf8').trim());
-    var metadataJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'metadata.json'), 'utf8').trim());
+    // var functionJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'function.json'), 'utf8').trim());
+    // var metadataJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'metadata.json'), 'utf8').trim());
 
-    // // Find the matching userPrompt and bindings values to ask the user to change
-    // var valuesToChange = [];
+    // // // Find the matching userPrompt and bindings values to ask the user to change
+    // // var valuesToChange = [];
 
-    // for (let i in metadataJSON['userPrompt']) {
+    // // for (let i in metadataJSON['userPrompt']) {
 
-    // }
+    // // }
 
-    this.log(functionJSON['bindings']);
-    this.log(metadataJSON['userPrompt']);
+    // this.log(functionJSON['bindings']);
+    // this.log(metadataJSON['userPrompt']);
 
     return 1;
   }
