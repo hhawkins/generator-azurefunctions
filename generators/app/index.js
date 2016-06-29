@@ -7,26 +7,25 @@ var requestPromise = require('request-promise');
 var fs = require('fs');
 var path = require('path');
 
-module.exports = yeoman.Base.extend({ 
-  prompting: function () { 
-    // Have Yeoman greet the user. 
-    this.log(yosay( 
-      'Welcome to the ' + chalk.red('Azure Functions') + ' generator!' 
-    )); 
+module.exports = yeoman.Base.extend({
+  prompting: function () {
+    // Have Yeoman greet the user.
+    this.log(yosay(
+      'Welcome to the ' + chalk.red('Azure Functions') + ' generator!'
+    ));
 
-    var prompts = [{ 
-      type: 'confirm', 
-      name: 'requestFunctionTemplates', 
-      message: 'Would you like to see the available templates?', 
-      default: true 
-    }]; 
+    var prompts = [{
+      type: 'confirm',
+      name: 'requestFunctionTemplates',
+      message: 'Would you like to see the available templates?',
+      default: true
+    }];
 
-
-    return this.prompt(prompts).then(answer => { 
-      // To access answer later use this.answer.(answer you need); 
-      this.answer = answer; 
-    }); 
-  }, 
+    return this.prompt(prompts).then(answer => {
+      // To access answer later use this.answer.(answer you need);
+      this.answer = answer;
+    });
+  },
 
   configuring: function () {
     /*
@@ -51,7 +50,7 @@ module.exports = yeoman.Base.extend({
       var options = {
         uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
         headers: {
-            'User-Agent': 'Request-Promise'
+          'User-Agent': 'Request-Promise'
         },
         json: true
       };
@@ -60,7 +59,7 @@ module.exports = yeoman.Base.extend({
         .then(templates => {
           this.log('There are %d templates available', templates.length);
 
-          for (let i = 0; i < templates.length; i ++) {
+          for (let i = 0; i < templates.length; i++) {
             listOfTemplates[i] = templates[i]['name'];
             listOfUrls[listOfTemplates[i]] = templates[i]['url'];
           }
@@ -88,7 +87,7 @@ module.exports = yeoman.Base.extend({
         .catch(err => {
           this.log('There was an error in searching for available templates...');
           this.log(err);
-        })
+        });
     }
   },
 
@@ -96,21 +95,20 @@ module.exports = yeoman.Base.extend({
     var options = {
       uri: listOfUrls[templateToUse],
       headers: {
-          'User-Agent': 'Request-Promise'
+        'User-Agent': 'Request-Promise'
       },
       json: true
     };
 
     this.log('Creating your function ' + functionName + '...');
-    
+
     requestPromise(options)
       .then(files => {
         var pathToSaveFunction = path.resolve('./', functionName);
 
-
         fs.mkdir(pathToSaveFunction, err => {
           if (err) {
-            if (err.code != 'EEXIST') {
+            if (err.code !== 'EEXIST') {
               throw err;
             }
           }
@@ -140,7 +138,7 @@ module.exports = yeoman.Base.extend({
       .catch(err => {
         this.log('There was an error in searching for the files for the template ' + templateToUse);
         this.log(err);
-      })
+      });
   },
 
   _configureTemplate: function(pathOfTemplate) {
@@ -148,8 +146,8 @@ module.exports = yeoman.Base.extend({
     // this.log('In path:');
     // this.log(pathOfTemplate);
 
-    // var functionJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'function.json'), 'utf8').trim());
-    // var metadataJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate,'metadata.json'), 'utf8').trim());
+    // var functionJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate, 'function.json'), 'utf8').trim());
+    // var metadataJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate, 'metadata.json'), 'utf8').trim());
 
     // // Find the matching userPrompt and bindings values to ask the user to change
     // var valuesToChange = [];
@@ -160,17 +158,17 @@ module.exports = yeoman.Base.extend({
 
     // this.log(functionJSON['bindings']);
     // this.log(metadataJSON['userPrompt']);
-    // var valuesToChange = [];
 
     // for (let i in metadataJSON['userPrompt']) {
-    //   if (functionJSON.includes(i)) {
+    //   this.log('i: ' + i);
+    //   if (metadataJson[i] === functionJson[i]) {
     //     valuesToChange.push(i);
     //   }
     // }
 
     // this.log(functionJSON['bindings']);
     // this.log(metadataJSON['userPrompt']);
-    
+
     // this.log('valuesToChange:');
     // this.log(valuesToChange);
 
