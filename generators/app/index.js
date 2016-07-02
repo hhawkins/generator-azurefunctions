@@ -7,6 +7,11 @@ var requestPromise = require('request-promise');
 var fs = require('fs');
 var path = require('path');
 
+// Setting up constants for the menu items
+const ALL_TEMPLATES = 'List all templates',
+  TEMPLATES_BY_LANG = 'List templates by language',
+  TEMPLATES_BY_EVENT_TYPE = 'List templates by type';
+
 module.exports = yeoman.Base.extend({
   prompting: function () {
     // Have Yeoman greet the user.
@@ -15,10 +20,11 @@ module.exports = yeoman.Base.extend({
     ));
 
     var prompts = [{
-      type: 'confirm',
+      type: 'rawlist',
       name: 'requestFunctionTemplates',
-      message: 'Would you like to see the available templates?',
-      default: true
+      message: 'Select an option...',
+      choices: [ALL_TEMPLATES, TEMPLATES_BY_LANG, TEMPLATES_BY_EVENT_TYPE],
+      default: ALL_TEMPLATES
     }];
 
     return this.prompt(prompts).then(answer => {
@@ -43,7 +49,12 @@ module.exports = yeoman.Base.extend({
     3. Download the files to the current directory!
     */
 
-    if (this.answer.requestFunctionTemplates) {
+    //------------------------------
+    //------------------------------
+    // This is if the answer is to list all the available templates...
+    //------------------------------
+    //------------------------------
+    if (this.answer.requestFunctionTemplates == ALL_TEMPLATES) {
       var listOfTemplates = [];
       var listOfUrls = [];
 
@@ -88,6 +99,24 @@ module.exports = yeoman.Base.extend({
           this.log('There was an error in searching for available templates...');
           this.log(err);
         });
+    }
+
+    //------------------------------
+    //------------------------------
+    // List the templates by the available languages
+    //------------------------------
+    //------------------------------
+    if (this.answer.requestFunctionTemplates == TEMPLATES_BY_LANG) {
+      this.log('Feature coming soon, just wait on it!');
+    }
+
+    //------------------------------
+    //------------------------------
+    // List the templates by the different event types
+    //------------------------------
+    //------------------------------
+    if (this.answer.requestFunctionTemplates == TEMPLATES_BY_EVENT_TYPE) {
+      this.log('Feature coming soon, just wait on it!');
     }
   },
 

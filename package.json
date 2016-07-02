@@ -1,6 +1,6 @@
 {
   "name": "generator-azurefunctions",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A Yeoman Generator for Azure Functions",
   "homepage": "",
   "author": {
