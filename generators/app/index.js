@@ -137,15 +137,6 @@ module.exports = yeoman.Base.extend({
 
     this.log('Creating your function ' + functionName + '...');
 
-    // requestPromise(languageOptions)
-    //   .then(languageInformation => {
-    //     for (let i = 0; i < files.length; i++){
-    //       if (files[i]['name'] == "metadata.json"){
-
-    //       }
-    //     }
-    //   })
-
     requestPromise(options)
       .then(files => {
         var pathToSaveFunction = path.resolve('./', functionName);
@@ -161,38 +152,19 @@ module.exports = yeoman.Base.extend({
           this.log('Location for your function:');
           this.log(pathToSaveFunction);
 
-          this.log('files: ');
-          this.log(files);
-
-          // Verify the language of the template
-          for (let i = 0; i < files.length; i++){
-            if (files[i]['name'] === "metadata.json"){
-              request
-              .get(files[i]['download_url'])
-              .on('error', err => {
-                this.log('There was an error when downloading the file ' + "metadata.json");
-                this.log(err);
-                })
-              .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, "metadata.json")));       
-            }
-          }
-
-          languageOfTemplate = languages.resolveLanguage(path.resolve(pathToSaveFunction, "metadata.json"));
-          this.log('languageOfTemplate: ' + languageOfTemplate);       
-          
-          if (language === ""){
-            language = languageOfTemplate;
-          }
-
-          // Then download the rest of the needed files
-
           for (let i = 0; i < files.length; i++) {
             var fileName = files[i]['name'];
             var fileUrl = files[i]['download_url'];
 
-            if (fileName === "function.json") {
+            if (fileName === "metadata.json") {
               request
                 .get(fileUrl)
+                .on('end', () => {
+                  // Verify the language of the template
+
+                  languageOfTemplate = languages.resolveLanguage(path.resolve(pathToSaveFunction, "metadata.json"));
+                  this.log('languageOfTemplate: ' + languageOfTemplate);       
+                })
                 .on('error', err => {
                   this.log('There was an error when downloading the file ' + fileName);
                   this.log(err);
@@ -201,9 +173,13 @@ module.exports = yeoman.Base.extend({
 
               this.log('Downloading file ' + fileName + ' to:');
               this.log(path.resolve(pathToSaveFunction, fileName));
-            }
-           
+            }           
           }
+          
+          // if (language === ""){
+          //   language = languageOfTemplate;
+          // }
+
 
           return 1;
         });
