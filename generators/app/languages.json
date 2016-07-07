@@ -1,0 +1,26 @@
+{
+    "JavaScript" : {
+        "fileExtension" : ".js",
+        "additionalFiles" : "package.json"
+    },
+
+    "C#" : {
+        "fileExtension" : ".csx",
+        "additionalFiles" : "package.json"
+    },
+
+    "Python" : {
+        "fileExtension" : ".py",
+        "additionalFiles" : "package.json"
+    },
+
+    "PowerShell" : {
+        "fileExtension" : ".ps1",
+        "additionalFiles" : "package.json"
+    },
+
+    "Batch" : {
+        "fileExtension" : ".bat",
+        "additionalFiles" : "package.json"
+    }
+}

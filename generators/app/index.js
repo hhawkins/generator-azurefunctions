@@ -6,6 +6,9 @@ var request = require('request');
 var requestPromise = require('request-promise');
 var fs = require('fs');
 var path = require('path');
+var languages = require ('./languages.js');
+var languagesJSON = require('./languages.json');
+// var Regex = require("regex");
 
 // Setting up constants for the menu items
 const ALL_TEMPLATES = 'List all templates',
@@ -18,6 +21,9 @@ module.exports = yeoman.Base.extend({
     this.log(yosay(
       'Welcome to the ' + chalk.red('Azure Functions') + ' generator!'
     ));
+
+    this.log('languages: ');
+    this.log(languagesJSON);
 
     var prompts = [{
       type: 'rawlist',
@@ -120,7 +126,7 @@ module.exports = yeoman.Base.extend({
     }
   },
 
-  _downloadTemplate: function (templateToUse, listOfUrls, functionName) {
+  _downloadTemplate: function (templateToUse, listOfUrls, functionName, language = "") {
     var options = {
       uri: listOfUrls[templateToUse],
       headers: {
@@ -131,9 +137,19 @@ module.exports = yeoman.Base.extend({
 
     this.log('Creating your function ' + functionName + '...');
 
+    // requestPromise(languageOptions)
+    //   .then(languageInformation => {
+    //     for (let i = 0; i < files.length; i++){
+    //       if (files[i]['name'] == "metadata.json"){
+
+    //       }
+    //     }
+    //   })
+
     requestPromise(options)
       .then(files => {
         var pathToSaveFunction = path.resolve('./', functionName);
+        var languageOfTemplate = "";
 
         fs.mkdir(pathToSaveFunction, err => {
           if (err) {
@@ -145,19 +161,48 @@ module.exports = yeoman.Base.extend({
           this.log('Location for your function:');
           this.log(pathToSaveFunction);
 
-          for (let i = 0; i < files.length; i ++) {
+          this.log('files: ');
+          this.log(files);
+
+          // Verify the language of the template
+          for (let i = 0; i < files.length; i++){
+            if (files[i]['name'] === "metadata.json"){
+              request
+              .get(files[i]['download_url'])
+              .on('error', err => {
+                this.log('There was an error when downloading the file ' + "metadata.json");
+                this.log(err);
+                })
+              .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, "metadata.json")));       
+            }
+          }
+
+          languageOfTemplate = languages.resolveLanguage(path.resolve(pathToSaveFunction, "metadata.json"));
+          this.log('languageOfTemplate: ' + languageOfTemplate);       
+          
+          if (language === ""){
+            language = languageOfTemplate;
+          }
+
+          // Then download the rest of the needed files
+
+          for (let i = 0; i < files.length; i++) {
             var fileName = files[i]['name'];
             var fileUrl = files[i]['download_url'];
-            request
-              .get(fileUrl)
-              .on('error', err => {
-                this.log('There was an error when downloading the file ' + fileName);
-                this.log(err);
-              })
-              .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
 
-            this.log('Downloading file ' + fileName + ' to:');
-            this.log(path.resolve(pathToSaveFunction, fileName));
+            if (fileName === "function.json") {
+              request
+                .get(fileUrl)
+                .on('error', err => {
+                  this.log('There was an error when downloading the file ' + fileName);
+                  this.log(err);
+                })
+                .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
+
+              this.log('Downloading file ' + fileName + ' to:');
+              this.log(path.resolve(pathToSaveFunction, fileName));
+            }
+           
           }
 
           return 1;
