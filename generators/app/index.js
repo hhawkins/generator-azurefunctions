@@ -22,9 +22,6 @@ module.exports = yeoman.Base.extend({
       'Welcome to the ' + chalk.red('Azure Functions') + ' generator!'
     ));
 
-    this.log('languages: ');
-    this.log(languagesJSON);
-
     var prompts = [{
       type: 'rawlist',
       name: 'requestFunctionTemplates',
@@ -127,6 +124,8 @@ module.exports = yeoman.Base.extend({
   },
 
   _downloadTemplate: function (templateToUse, listOfUrls, functionName, language = "") {
+    var languageToUse = language;
+
     var options = {
       uri: listOfUrls[templateToUse],
       headers: {
@@ -152,6 +151,7 @@ module.exports = yeoman.Base.extend({
           this.log('Location for your function:');
           this.log(pathToSaveFunction);
 
+          // Get the language information
           for (let i = 0; i < files.length; i++) {
             var fileName = files[i]['name'];
             var fileUrl = files[i]['download_url'];
@@ -161,9 +161,11 @@ module.exports = yeoman.Base.extend({
                 .get(fileUrl)
                 .on('end', () => {
                   // Verify the language of the template
-
                   languageOfTemplate = languages.resolveLanguage(path.resolve(pathToSaveFunction, "metadata.json"));
-                  this.log('languageOfTemplate: ' + languageOfTemplate);       
+                  if (languageToUse === "") {
+                    languageToUse = languageOfTemplate;
+                    this.log('languageToUse: ' + languageToUse);
+                  }
                 })
                 .on('error', err => {
                   this.log('There was an error when downloading the file ' + fileName);
@@ -176,11 +178,6 @@ module.exports = yeoman.Base.extend({
             }           
           }
           
-          // if (language === ""){
-          //   language = languageOfTemplate;
-          // }
-
-
           return 1;
         });
         return this._configureTemplate(pathToSaveFunction);
