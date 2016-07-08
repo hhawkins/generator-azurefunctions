@@ -117,22 +117,15 @@ module.exports = yeoman.Base.extend({
 
       var prompts = [{
         type: 'rawlist',
-        name: 'requestFunctionTemplates',
+        name: 'languageChoose',
         message: 'Select an option...',
         choices: listOfLanguages,
         default: listOfLanguages[0]
       }];
 
-      var options = {
-        uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
-        headers: {
-          'User-Agent': 'Request-Promise'
-        },
-        json: true
-      };
-
       return this.prompt(prompts).then(answer => {
         this.answer = answer;
+        this._showRelevantTemplates(this.answer.languageChoose)
       });
     }
 
@@ -144,6 +137,59 @@ module.exports = yeoman.Base.extend({
     if (this.answer.requestFunctionTemplates == TEMPLATES_BY_EVENT_TYPE) {
       this.log('Feature coming soon, just wait on it!');
     }
+  },
+
+  _showRelevantTemplates: function(languageName) {
+    // Setup the correlation with the language chosen to the template name
+    var languageTemplateIdentifier = "";
+    if (languageName === "JavaScript")
+      languageTemplateIdentifier = "NodeJS";
+
+    if (languageName === "C#")
+      languageTemplateIdentifier = "CSharp";
+
+    if (languageName === "Python")
+      languageTemplateIdentifier = "Python";
+
+    if (languageName === "PowerShell")
+      languageTemplateIdentifier = "Powershell";
+
+    if (languageName === "Batch")
+      languageTemplateIdentifier = "Batch";
+
+    var options = {
+      uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
+      headers: {
+        'User-Agent': 'Request-Promise'
+      },
+      json: true
+    };
+
+    requestPromise(options)
+      .then(templates => {
+        var listOfTemplates = [];
+        var listOfUrls = {};
+
+        for (let i = 0; i < templates.length; i++) {
+          let templateName = templates[i]['name'];
+          if (templateName.indexOf(languageTemplateIdentifier) >= 0) {
+            listOfTemplates.push(templates[i]['name']);
+            listOfUrls[listOfTemplates[i]] = templates[i]['url'];
+          }
+        }
+
+         var prompts = [{
+            type: 'list',
+            name: 'templateToUse',
+            message: 'Select from one of the available templates...',
+            choices: listOfTemplates,
+            default: 0
+          }];
+
+        return this.prompt(prompts).then(answer => {
+          this.answer = answer;
+        });
+      });
   },
 
   _downloadTemplate: function (templateToUse, listOfUrls, functionName, language = "") {
@@ -163,8 +209,6 @@ module.exports = yeoman.Base.extend({
       .then(files => {
         var pathToSaveFunction = path.resolve('./', functionName);
         var languageOfTemplate = "";
-
-
 
         fs.mkdir(pathToSaveFunction, err => {
           if (err) {
