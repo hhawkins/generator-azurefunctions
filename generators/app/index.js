@@ -110,7 +110,30 @@ module.exports = yeoman.Base.extend({
     //------------------------------
     //------------------------------
     if (this.answer.requestFunctionTemplates == TEMPLATES_BY_LANG) {
-      this.log('Feature coming soon, just wait on it!');
+      let listOfLanguages = [];
+      for (let key in languagesJSON) {
+        listOfLanguages.push(key);
+      }
+
+      var prompts = [{
+        type: 'rawlist',
+        name: 'requestFunctionTemplates',
+        message: 'Select an option...',
+        choices: listOfLanguages,
+        default: listOfLanguages[0]
+      }];
+
+      var options = {
+        uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
+        headers: {
+          'User-Agent': 'Request-Promise'
+        },
+        json: true
+      };
+
+      return this.prompt(prompts).then(answer => {
+        this.answer = answer;
+      });
     }
 
     //------------------------------
@@ -141,6 +164,8 @@ module.exports = yeoman.Base.extend({
         var pathToSaveFunction = path.resolve('./', functionName);
         var languageOfTemplate = "";
 
+
+
         fs.mkdir(pathToSaveFunction, err => {
           if (err) {
             if (err.code !== 'EEXIST') {
@@ -165,6 +190,37 @@ module.exports = yeoman.Base.extend({
                   if (languageToUse === "") {
                     languageToUse = languageOfTemplate;
                     this.log('languageToUse: ' + languageToUse);
+
+                    for (let j = 0; j < files.length; j++) {
+                      var fileName = files[j]['name'];
+                      var fileUrl = files[j]['download_url'];
+                      
+                      if (fileName.indexOf(languagesJSON[languageToUse].fileExtension) >= 0) {
+                        request
+                          .get(fileUrl)
+                          .on('error', err => {
+                            this.log('There was an error when downloading the file ' + fileName);
+                            this.log(err);
+                          })
+                          .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
+
+                        this.log('Downloading file ' + fileName + ' to:');
+                        this.log(path.resolve(pathToSaveFunction, fileName));
+                      }
+
+                      if (fileName === "function.json") {
+                        request
+                          .get(fileUrl)
+                          .on('error', err => {
+                            this.log('There was an error when downloading the file ' + fileName);
+                            this.log(err);
+                          })
+                          .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
+
+                        this.log('Downloading file ' + fileName + ' to:');
+                        this.log(path.resolve(pathToSaveFunction, fileName));
+                      }  
+                    }
                   }
                 })
                 .on('error', err => {
@@ -175,7 +231,7 @@ module.exports = yeoman.Base.extend({
 
               this.log('Downloading file ' + fileName + ' to:');
               this.log(path.resolve(pathToSaveFunction, fileName));
-            }           
+            }         
           }
           
           return 1;
