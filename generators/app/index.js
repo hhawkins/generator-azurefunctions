@@ -8,7 +8,7 @@ var fs = require('fs');
 var path = require('path');
 var languages = require ('./languages.js');
 var languagesJSON = require('./languages.json');
-// var Regex = require("regex");
+var eventTypesJson = require('./eventTypes.json');
 
 // Setting up constants for the menu items
 const ALL_TEMPLATES = 'List all templates',
@@ -117,7 +117,7 @@ module.exports = yeoman.Base.extend({
 
       var prompts = [{
         type: 'rawlist',
-        name: 'languageChoose',
+        name: 'languageChose',
         message: 'Select an option...',
         choices: listOfLanguages,
         default: listOfLanguages[0]
@@ -125,7 +125,7 @@ module.exports = yeoman.Base.extend({
 
       return this.prompt(prompts).then(answer => {
         this.answer = answer;
-        this._showRelevantTemplates(this.answer.languageChoose)
+        this._showLanguageRelevantTemplates(this.answer.languageChose)
       });
     }
 
@@ -136,26 +136,30 @@ module.exports = yeoman.Base.extend({
     //------------------------------
     if (this.answer.requestFunctionTemplates == TEMPLATES_BY_EVENT_TYPE) {
       this.log('Feature coming soon, just wait on it!');
+
+      let listOfEventTypes = [];
+      for (let key in eventTypesJson) {
+        listOfEventTypes.push(key);
+      }
+
+      var prompts = [{
+        type: 'rawlist',
+        name: 'eventChoose',
+        message: 'Select an option...',
+        choices: listOfEventTypes,
+        default: listOfEventTypes[0]
+      }];
+
+      return this.prompt(prompts).then(answer => {
+        this.answer = answer;
+        this._showEventRelevantTemplates(this.answer.eventChoose)
+      });
     }
   },
 
-  _showRelevantTemplates: function(languageName) {
+  _showLanguageRelevantTemplates: function(languageName) {
     // Setup the correlation with the language chosen to the template name
-    var languageTemplateIdentifier = "";
-    if (languageName === "JavaScript")
-      languageTemplateIdentifier = "NodeJS";
-
-    if (languageName === "C#")
-      languageTemplateIdentifier = "CSharp";
-
-    if (languageName === "Python")
-      languageTemplateIdentifier = "Python";
-
-    if (languageName === "PowerShell")
-      languageTemplateIdentifier = "Powershell";
-
-    if (languageName === "Batch")
-      languageTemplateIdentifier = "Batch";
+    var languageTemplateIdentifier = languages.resolveLanguageIdentifier(languageName);
 
     var options = {
       uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
@@ -165,11 +169,11 @@ module.exports = yeoman.Base.extend({
       json: true
     };
 
+    var listOfTemplates = [];
+    var listOfUrls = {};
+
     requestPromise(options)
       .then(templates => {
-        var listOfTemplates = [];
-        var listOfUrls = {};
-
         for (let i = 0; i < templates.length; i++) {
           let templateName = templates[i]['name'];
           if (templateName.indexOf(languageTemplateIdentifier) >= 0) {
@@ -184,12 +188,30 @@ module.exports = yeoman.Base.extend({
             message: 'Select from one of the available templates...',
             choices: listOfTemplates,
             default: 0
+          }, {
+            type: 'input',
+            name: 'functionName',
+            message: 'Enter a name for your function...',
+            default: 'MyAzureFunction'
           }];
 
         return this.prompt(prompts).then(answer => {
           this.answer = answer;
         });
-      });
+      })
+      .then(() => {
+        this.log("downloadTemplate options:");
+        this.log(this.answer.templateToUse, listOfUrls, this.answer.functionName, languageName);
+        this._downloadTemplate(this.answer.templateToUse, listOfUrls, this.answer.functionName, languageName);
+      })
+      .catch(err => {
+        this.log('There was an error in searching for available templates...');
+        this.log(err);
+      });;
+  },
+
+  _showEventRelevantTemplates: function(eventName) {
+
   },
 
   _downloadTemplate: function (templateToUse, listOfUrls, functionName, language = "") {
@@ -233,7 +255,6 @@ module.exports = yeoman.Base.extend({
                   languageOfTemplate = languages.resolveLanguage(path.resolve(pathToSaveFunction, "metadata.json"));
                   if (languageToUse === "") {
                     languageToUse = languageOfTemplate;
-                    this.log('languageToUse: ' + languageToUse);
 
                     for (let j = 0; j < files.length; j++) {
                       var fileName = files[j]['name'];
@@ -272,9 +293,6 @@ module.exports = yeoman.Base.extend({
                   this.log(err);
                 })
                 .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
-
-              this.log('Downloading file ' + fileName + ' to:');
-              this.log(path.resolve(pathToSaveFunction, fileName));
             }         
           }
           

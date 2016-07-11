@@ -22,5 +22,10 @@
     "Batch" : {
         "fileExtension" : ".bat",
         "additionalFiles" : "package.json"
+    },
+
+     "Bash" : {
+        "fileExtension" : ".sh",
+        "additionalFiles" : "package.json"
     }
 }
