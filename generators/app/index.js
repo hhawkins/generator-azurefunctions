@@ -9,6 +9,12 @@ var path = require('path');
 var languages = require ('./languages.js');
 var languagesJSON = require('./languages.json');
 var eventTypesJson = require('./eventTypes.json');
+var templatesJSON = {};
+
+// Use this json file for sorting through templates
+// https://ahmelsayed.blob.core.windows.net/public/templates.json
+// Chrome extension JSONView makes it easier to see it
+// https://chrome.google.com/webstore/detail/jsonview/chklaanhfefbnpoihckbnefhakgolnmc?hl=en
 
 // Setting up constants for the menu items
 const ALL_TEMPLATES = 'List all templates',
