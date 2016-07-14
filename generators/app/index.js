@@ -9,7 +9,7 @@ var path = require('path');
 var languages = require ('./languages.js');
 var languagesJSON = require('./languages.json');
 var eventTypesJson = require('./eventTypes.json');
-var templatesJSON = {};
+// var templatesJSON = {};
 
 // Use this json file for sorting through templates
 // https://ahmelsayed.blob.core.windows.net/public/templates.json
@@ -116,23 +116,59 @@ module.exports = yeoman.Base.extend({
     //------------------------------
     //------------------------------
     if (this.answer.requestFunctionTemplates == TEMPLATES_BY_LANG) {
-      let listOfLanguages = [];
-      for (let key in languagesJSON) {
-        listOfLanguages.push(key);
-      }
+      // templates.json url
+      var templatesUrl = "https://ahmelsayed.blob.core.windows.net/public/templates.json";
+      var fileName = "templates.json";
+      var templatesJson = {};
 
-      var prompts = [{
-        type: 'rawlist',
-        name: 'languageChose',
-        message: 'Select an option...',
-        choices: listOfLanguages,
-        default: listOfLanguages[0]
-      }];
+      request
+          .get(templatesUrl)
+          .on('end', () => {
+              templatesJson = require(path.resolve('./templates.json'));
+              
+              // this.log(templatesJson[0]);
+              // output:
+              // { id: 'BlobTrigger-Batch',
+              //   function: { disabled: false, bindings: [ [Object] ] },
+              //   metadata:
+              //     { name: 'BlobTrigger - Batch',
+              //       description: 'A Batch function that will be run whenever a blob is added to a specified container',
+              //       defaultFunctionName: 'BlobTriggerBatch',
+              //       language: 'Batch',
+              //       category: [ 'Experimental' ],
+              //       userPrompt: [ 'connection', 'path' ] },
+              //   files: { 'run.bat': 'echo OFF\nSET /p input=<%input%\necho Windows Batch script processed blob \'%input%\'' } }
 
-      return this.prompt(prompts).then(answer => {
-        this.answer = answer;
-        this._showLanguageRelevantTemplates(this.answer.languageChose)
-      });
+              var sortedTemplatesByLanguage = {};
+
+              for (var i in templatesJson) {
+                var tempID = templatesJson[i].id;
+                var tempLang = templatesJson[i].metadata.language;
+
+                if (sortedTemplatesByLanguage.hasOwnProperty(tempLang)) {
+                  sortedTemplatesByLanguage[tempLang].push(tempID);
+                } else {
+                  sortedTemplatesByLanguage[tempLang] = new Array(tempID);
+                }
+              }
+
+              var prompts = [{
+                type: 'rawlist',
+                name: 'languageChose',
+                message: 'Select a language...',
+                choices: Object.keys(sortedTemplatesByLanguage),
+                default: Object.keys(sortedTemplatesByLanguage)[0]
+              }];
+
+              return this.prompt(prompts).then(answer => {
+                this.answer = answer;
+                this._showRelevantTemplates(sortedTemplatesByLanguage[this.answer.languageChose]);
+              });
+          })
+          .on('error', err => {
+            this.log('There was an error when downloading the templates.json file');
+          })
+          .pipe(fs.createWriteStream(path.resolve('./', fileName)));
     }
 
     //------------------------------
@@ -142,25 +178,58 @@ module.exports = yeoman.Base.extend({
     //------------------------------
     if (this.answer.requestFunctionTemplates == TEMPLATES_BY_EVENT_TYPE) {
       this.log('Feature coming soon, just wait on it!');
-
-      let listOfEventTypes = [];
-      for (let key in eventTypesJson) {
-        listOfEventTypes.push(key);
-      }
-
-      var prompts = [{
-        type: 'rawlist',
-        name: 'eventChoose',
-        message: 'Select an option...',
-        choices: listOfEventTypes,
-        default: listOfEventTypes[0]
-      }];
-
-      return this.prompt(prompts).then(answer => {
-        this.answer = answer;
-        this._showEventRelevantTemplates(this.answer.eventChoose)
-      });
     }
+  },
+
+  _showRelevantTemplates: function(templatesToShow) {
+    this.log('templatesToShow: ');
+    this.log(templatesToShow);
+
+    var options = {
+      uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
+      headers: {
+        'User-Agent': 'Request-Promise'
+      },
+      json: true
+    };
+
+    var listOfTemplates = [];
+    var listOfUrls = {};
+
+    requestPromise(options)
+      .then(templates => {
+        for (let i = 0; i < templates.length; i++) {
+          let templateName = templates[i]['name'];
+          if (templatesToShow.indexOf(templateName) >= 0) {
+            listOfTemplates.push(templates[i]['name']);
+            listOfUrls[listOfTemplates[i]] = templates[i]['url'];
+          }
+        }
+
+        var prompts = [{
+          type: 'list',
+          name: 'templateToUse',
+          message: 'Select from one of the available templates...',
+          choices: listOfTemplates,
+          default: 0
+        }, {
+          type: 'input',
+          name: 'functionName',
+          message: 'Enter a name for your function...',
+          default: 'MyAzureFunction'
+        }];
+
+        return this.prompt(prompts).then(answer => {
+          this.answer = answer;
+        });
+      })
+      .then(() => {
+        // this._downloadTemplate(this.answer.templateToUse, listOfUrls, this.answer.functionName, languageName);
+      })
+      .catch(err => {
+        this.log('There was an error in searching for available templates...');
+        this.log(err);
+      });;
   },
 
   _showLanguageRelevantTemplates: function(languageName) {
@@ -206,9 +275,9 @@ module.exports = yeoman.Base.extend({
         });
       })
       .then(() => {
-        this.log("downloadTemplate options:");
-        this.log(this.answer.templateToUse, listOfUrls, this.answer.functionName, languageName);
-        this._downloadTemplate(this.answer.templateToUse, listOfUrls, this.answer.functionName, languageName);
+        // this.log("downloadTemplate options:");
+        // this.log(this.answer.templateToUse, listOfUrls, this.answer.functionName, languageName);
+        // this._downloadTemplate(this.answer.templateToUse, listOfUrls, this.answer.functionName, languageName);
       })
       .catch(err => {
         this.log('There was an error in searching for available templates...');
@@ -313,36 +382,6 @@ module.exports = yeoman.Base.extend({
   },
 
   _configureTemplate: function(pathOfTemplate) {
-    // this.log('Configuring Template...');
-    // this.log('In path:');
-    // this.log(pathOfTemplate);
-
-    // var functionJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate, 'function.json'), 'utf8').trim());
-    // var metadataJSON = JSON.parse(fs.readFileSync(path.resolve(pathOfTemplate, 'metadata.json'), 'utf8').trim());
-
-    // // Find the matching userPrompt and bindings values to ask the user to change
-    // var valuesToChange = [];
-
-    // for (let i in metadataJSON['userPrompt']) {
-
-    // }
-
-    // this.log(functionJSON['bindings']);
-    // this.log(metadataJSON['userPrompt']);
-
-    // for (let i in metadataJSON['userPrompt']) {
-    //   this.log('i: ' + i);
-    //   if (metadataJson[i] === functionJson[i]) {
-    //     valuesToChange.push(i);
-    //   }
-    // }
-
-    // this.log(functionJSON['bindings']);
-    // this.log(metadataJSON['userPrompt']);
-
-    // this.log('valuesToChange:');
-    // this.log(valuesToChange);
-
     return 1;
   }
 });
