@@ -102,7 +102,7 @@ module.exports = yeoman.Base.extend({
           });
         })
         .then(() => {
-          this._downloadTemplate(this.answer.templateToUse, listOfUrls[this.answer.templateToUse], this.answer.functionName);
+          this._downloadTemplate(this.answer.templateToUse, listOfUrls[this.answer.templateToUse], this.answer.functionName, "");
         })
         .catch(err => {
           this.log('There was an error in searching for available templates...');
@@ -125,19 +125,6 @@ module.exports = yeoman.Base.extend({
           .get(templatesUrl)
           .on('end', () => {
               templatesJson = require(path.resolve('./templates.json'));
-              
-              // this.log(templatesJson[0]);
-              // output:
-              // { id: 'BlobTrigger-Batch',
-              //   function: { disabled: false, bindings: [ [Object] ] },
-              //   metadata:
-              //     { name: 'BlobTrigger - Batch',
-              //       description: 'A Batch function that will be run whenever a blob is added to a specified container',
-              //       defaultFunctionName: 'BlobTriggerBatch',
-              //       language: 'Batch',
-              //       category: [ 'Experimental' ],
-              //       userPrompt: [ 'connection', 'path' ] },
-              //   files: { 'run.bat': 'echo OFF\nSET /p input=<%input%\necho Windows Batch script processed blob \'%input%\'' } }
 
               var sortedTemplatesByLanguage = {};
 
@@ -151,6 +138,8 @@ module.exports = yeoman.Base.extend({
                   sortedTemplatesByLanguage[tempLang] = new Array(tempID);
                 }
               }
+
+              this.log('There are %d languages available', Object.keys(sortedTemplatesByLanguage).length);
 
               var prompts = [{
                 type: 'rawlist',
@@ -177,11 +166,66 @@ module.exports = yeoman.Base.extend({
     //------------------------------
     //------------------------------
     if (this.answer.requestFunctionTemplates == TEMPLATES_BY_EVENT_TYPE) {
-      this.log('Feature coming soon, just wait on it!');
+      // templates.json url
+      var templatesUrl = "https://ahmelsayed.blob.core.windows.net/public/templates.json";
+      var fileName = "templates.json";
+      var templatesJson = {};
+
+      request
+        .get(templatesUrl)
+        .on('end', () => {
+          templatesJson = require(path.resolve('./templates.json'));
+
+          this.log('templatesJson[0]: ' + templatesJson[0]['function'].bindings[0].type);
+
+          var sortedTemplatesByEvent = {};
+
+          for (var i in templatesJson) {
+            var tempID = templatesJson[i].id;
+            var tempEvent = "";
+
+            if (templatesJson[i]['function'].bindings[0] !== undefined) {
+              tempEvent = templatesJson[i]['function'].bindings[0].type;
+            } else {
+              tempEvent = "empty";
+            }
+
+            if (sortedTemplatesByEvent.hasOwnProperty(tempEvent)) {
+              sortedTemplatesByEvent[tempEvent].push(tempID);
+            } else {
+              sortedTemplatesByEvent[tempEvent] = new Array(tempID);
+            }
+          }
+
+          this.log('There are %d event types available', Object.keys(sortedTemplatesByEvent).length);
+
+          var prompts = [{
+            type: 'rawlist',
+            name: 'eventChose',
+            message: 'Select an event type...',
+            choices: Object.keys(sortedTemplatesByEvent),
+            default: Object.keys(sortedTemplatesByEvent)[0]
+          }];
+
+          return this.prompt(prompts).then(answer => {
+            this.answer = answer;
+            this._showRelevantTemplates(sortedTemplatesByEvent[this.answer.eventChose]);
+          });
+        })
+        .on('error', err => {
+          this.log('There was an error when downloading the templates.json file');
+        })
+        .pipe(fs.createWriteStream(path.resolve('./', fileName)));
     }
   },
 
   _showRelevantTemplates: function(templatesToShow) {
+    var languageToUse = "";
+
+    if (this.answer.languageChose !== undefined) {
+      languageToUse = this.answer.languageChose;
+    }
+
     var options = {
       uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
       headers: {
@@ -203,6 +247,8 @@ module.exports = yeoman.Base.extend({
           }
         }
 
+        this.log('There are %d templates available', listOfTemplates.length);
+
         var prompts = [{
           type: 'list',
           name: 'templateToUse',
@@ -221,7 +267,7 @@ module.exports = yeoman.Base.extend({
         });
       })
       .then(() => {
-        this._downloadTemplate(this.answer.templateToUse, listOfUrls[this.answer.templateToUse], this.answer.functionName);
+        this._downloadTemplate(this.answer.templateToUse, listOfUrls[this.answer.templateToUse], this.answer.functionName, languageToUse);
       })
       .catch(err => {
         this.log('There was an error in searching for available templates...');
@@ -229,7 +275,7 @@ module.exports = yeoman.Base.extend({
       });;
   },
   
-  _downloadTemplate: function (templateToUse, urlToUse, functionName, language = "") {
+  _downloadTemplate: function (templateToUse, urlToUse, functionName, language) {
     var languageToUse = language;
 
     var options = {
@@ -245,7 +291,6 @@ module.exports = yeoman.Base.extend({
     requestPromise(options)
       .then(files => {
         var pathToSaveFunction = path.resolve('./', functionName);
-        var languageOfTemplate = "";
 
         fs.mkdir(pathToSaveFunction, err => {
           if (err) {
@@ -254,86 +299,80 @@ module.exports = yeoman.Base.extend({
             }
           }
 
-          this.log('Location for your function:');
-          this.log(pathToSaveFunction + '\n');
+          this.log('Location for your function...');
+          this.log(pathToSaveFunction);
 
-          var filesToDownload = {};
+          var filesInTemplate = {};
           for (let i = 0; i < files.length; i++) {
-            filesToDownload[files[i].name] = files[i].download_url;
+            filesInTemplate[files[i].name] = files[i].download_url;
           }
+
+          // Function to download the files
+          var downloadFile = function (filesToDownload, language) {
+              for (let file in filesToDownload) {
+                request
+                  .get(filesToDownload[file])
+                  .on('error', err => {
+                    this.log('There was an error when downloading the file ' + file);
+                    this.log(err);
+                  })
+                  .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, file)));
+              }
+          }.bind(this);
 
           // Verify language if none is given on function call
-          if (language === "") {
-            // check metadata.json to verify language
+          if (languageToUse === "") {
+            // download metadata.json to verify language
+            request
+              .get(filesInTemplate['metadata.json'])
+              .on('end', () => {
+                // check the language
+                languageToUse = languages.resolveLanguage(path.resolve(pathToSaveFunction, "metadata.json"));
+
+                // gather the files
+                var filesToDownload = {};
+                for (let file in filesInTemplate) {
+                  if (file.indexOf(languagesJSON[languageToUse].fileExtension) >= 0) {
+                    filesToDownload[file] = filesInTemplate[file];
+                  } else if (file === "function.json") {
+                    filesToDownload[file] = filesInTemplate[file];
+                  }
+                }
+
+                // download the rest of the files
+                downloadFile(filesToDownload, languageToUse);
+              })
+              .on('error', err => {
+                this.log('There was an error when downloading metadata.json');
+                this.log(err);
+              })
+              .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, 'metadata.json')));
           } else {
-            // download the appropriate files
-          }
+            // gather the files
+            var filesToDownload = {};
+            for (let file in filesInTemplate) {
+              this.log('file: ' + file);
+              if (file.indexOf(languagesJSON[languageToUse].fileExtension) >= 0) {
+                filesToDownload[file] = filesInTemplate[file];
+              } else if (file === "metadata.json") {
+                filesToDownload[file] = filesInTemplate[file];
+              } else if (file === "function.json") {
+                filesToDownload[file] = filesInTemplate[file];
+              }
+            }
 
+             this.log('filesToDownload: ' + filesToDownload);
 
-          // for (let i = 0; i < files.length; i++) {
-          //   var fileName = files[i]['name'];
-          //   var fileUrl = files[i]['download_url'];
-
-          //   if (fileName === "metadata.json") {
-          //     request
-          //       .get(fileUrl)
-          //       .on('end', () => {
-          //         // Verify the language of the template
-          //         languageOfTemplate = languages.resolveLanguage(path.resolve(pathToSaveFunction, "metadata.json"));
-          //         if (languageToUse === "") {
-          //           languageToUse = languageOfTemplate;
-
-          //           for (let j = 0; j < files.length; j++) {
-          //             var fileName = files[j]['name'];
-          //             var fileUrl = files[j]['download_url'];
-                      
-          //             if (fileName.indexOf(languagesJSON[languageToUse].fileExtension) >= 0) {
-          //               request
-          //                 .get(fileUrl)
-          //                 .on('error', err => {
-          //                   this.log('There was an error when downloading the file ' + fileName);
-          //                   this.log(err);
-          //                 })
-          //                 .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
-
-          //               this.log('Downloading file ' + fileName + ' to:');
-          //               this.log(path.resolve(pathToSaveFunction, fileName));
-          //             }
-
-          //             if (fileName === "function.json") {
-          //               request
-          //                 .get(fileUrl)
-          //                 .on('error', err => {
-          //                   this.log('There was an error when downloading the file ' + fileName);
-          //                   this.log(err);
-          //                 })
-          //                 .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
-
-          //               this.log('Downloading file ' + fileName + ' to:');
-          //               this.log(path.resolve(pathToSaveFunction, fileName));
-          //             }  
-          //           }
-          //         }
-          //       })
-          //       .on('error', err => {
-          //         this.log('There was an error when downloading the file ' + fileName);
-          //         this.log(err);
-          //       })
-          //       .pipe(fs.createWriteStream(path.resolve(pathToSaveFunction, fileName)));
-          //   }         
-          // }
-          
+            // download the files
+            downloadFile(filesToDownload, languageToUse);
+          }     
           return 1;
         });
-        return this._configureTemplate(pathToSaveFunction);
+        return 1;
       })
       .catch(err => {
         this.log('There was an error in searching for the files for the template ' + templateToUse);
         this.log(err);
       });
-  },
-
-  _configureTemplate: function(pathOfTemplate) {
-    return 1;
   }
 });
