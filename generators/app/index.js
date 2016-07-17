@@ -64,50 +64,75 @@ module.exports = yeoman.Base.extend({
     //------------------------------
     //------------------------------
     if (this.answer.requestFunctionTemplates == ALL_TEMPLATES) {
-      var listOfTemplates = [];
-      var listOfUrls = {};
+      // templates.json url
+      var templatesUrl = "https://ahmelsayed.blob.core.windows.net/public/templates.json";
+      var fileName = "templates.json";
+      var templatesJson = {};
 
-      var options = {
-        uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
-        headers: {
-          'User-Agent': 'Request-Promise'
-        },
-        json: true
-      };
+      request
+          .get(templatesUrl)
+          .on('end', () => {
+              templatesJson = require(path.resolve('./templates.json'));
 
-      requestPromise(options)
-        .then(templates => {
-          this.log('There are %d templates available', templates.length);
+              var allTemplates = [];
 
-          for (let i = 0; i < templates.length; i++) {
-            listOfTemplates.push(templates[i].name);
-            listOfUrls[listOfTemplates[i]] = templates[i].url;
-          }
+              for (var i in templatesJson) {
+                var tempID = templatesJson[i].id;
 
-          var prompts = [{
-            type: 'list',
-            name: 'templateToUse',
-            message: 'Select from one of the available templates...',
-            choices: listOfTemplates,
-            default: 0
-          }, {
-            type: 'input',
-            name: 'functionName',
-            message: 'Enter a name for your function...',
-            default: 'MyAzureFunction'
-          }];
+                allTemplates.push(tempID);
+              }
 
-          return this.prompt(prompts).then(answer => {
-            this.answer = answer;
-          });
-        })
-        .then(() => {
-          this._downloadTemplate(this.answer.templateToUse, listOfUrls[this.answer.templateToUse], this.answer.functionName, "");
-        })
-        .catch(err => {
-          this.log('There was an error in searching for available templates...');
-          this.log(err);
-        });
+              this._showRelevantTemplates(allTemplates);
+          })
+          .on('error', err => {
+            this.log('There was an error when downloading the templates.json file');
+          })
+          .pipe(fs.createWriteStream(path.resolve('./', fileName)));
+
+      // var listOfTemplates = [];
+      // var listOfUrls = {};
+
+      // var options = {
+      //   uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
+      //   headers: {
+      //     'User-Agent': 'Request-Promise'
+      //   },
+      //   json: true
+      // };
+
+      // requestPromise(options)
+      //   .then(templates => {
+      //     this.log('There are %d templates available', templates.length);
+
+      //     for (let i = 0; i < templates.length; i++) {
+      //       listOfTemplates.push(templates[i].name);
+      //       listOfUrls[listOfTemplates[i]] = templates[i].url;
+      //     }
+
+      //     var prompts = [{
+      //       type: 'list',
+      //       name: 'templateToUse',
+      //       message: 'Select from one of the available templates...',
+      //       choices: listOfTemplates,
+      //       default: 0
+      //     }, {
+      //       type: 'input',
+      //       name: 'functionName',
+      //       message: 'Enter a name for your function...',
+      //       default: 'MyAzureFunction'
+      //     }];
+
+      //     return this.prompt(prompts).then(answer => {
+      //       this.answer = answer;
+      //     });
+      //   })
+      //   .then(() => {
+      //     this._downloadTemplate(this.answer.templateToUse, listOfUrls[this.answer.templateToUse], this.answer.functionName, "");
+      //   })
+      //   .catch(err => {
+      //     this.log('There was an error in searching for available templates...');
+      //     this.log(err);
+      //   });
     }
 
     //------------------------------
@@ -242,10 +267,11 @@ module.exports = yeoman.Base.extend({
         for (let i = 0; i < templates.length; i++) {
           let templateName = templates[i]['name'];
           if (templatesToShow.indexOf(templateName) >= 0) {
-            listOfTemplates.push(templates[i]['name']);
-            listOfUrls[listOfTemplates[i]] = templates[i]['url'];
+            listOfUrls[templates[i].name] = templates[i]['url'];
           }
         }
+
+        listOfTemplates = Object.keys(listOfUrls);
 
         this.log('There are %d templates available', listOfTemplates.length);
 
