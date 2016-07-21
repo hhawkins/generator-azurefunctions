@@ -88,51 +88,6 @@ module.exports = yeoman.Base.extend({
             this.log('There was an error when downloading the templates.json file');
           })
           .pipe(fs.createWriteStream(path.resolve('./', fileName)));
-
-      // var listOfTemplates = [];
-      // var listOfUrls = {};
-
-      // var options = {
-      //   uri: 'https://api.github.com/repos/Azure/azure-webjobs-sdk-templates/contents/Templates',
-      //   headers: {
-      //     'User-Agent': 'Request-Promise'
-      //   },
-      //   json: true
-      // };
-
-      // requestPromise(options)
-      //   .then(templates => {
-      //     this.log('There are %d templates available', templates.length);
-
-      //     for (let i = 0; i < templates.length; i++) {
-      //       listOfTemplates.push(templates[i].name);
-      //       listOfUrls[listOfTemplates[i]] = templates[i].url;
-      //     }
-
-      //     var prompts = [{
-      //       type: 'list',
-      //       name: 'templateToUse',
-      //       message: 'Select from one of the available templates...',
-      //       choices: listOfTemplates,
-      //       default: 0
-      //     }, {
-      //       type: 'input',
-      //       name: 'functionName',
-      //       message: 'Enter a name for your function...',
-      //       default: 'MyAzureFunction'
-      //     }];
-
-      //     return this.prompt(prompts).then(answer => {
-      //       this.answer = answer;
-      //     });
-      //   })
-      //   .then(() => {
-      //     this._downloadTemplate(this.answer.templateToUse, listOfUrls[this.answer.templateToUse], this.answer.functionName, "");
-      //   })
-      //   .catch(err => {
-      //     this.log('There was an error in searching for available templates...');
-      //     this.log(err);
-      //   });
     }
 
     //------------------------------
@@ -200,8 +155,6 @@ module.exports = yeoman.Base.extend({
         .get(templatesUrl)
         .on('end', () => {
           templatesJson = require(path.resolve('./templates.json'));
-
-          this.log('templatesJson[0]: ' + templatesJson[0]['function'].bindings[0].type);
 
           var sortedTemplatesByEvent = {};
 
