@@ -6,9 +6,6 @@ var request = require('request');
 var requestPromise = require('request-promise');
 var fs = require('fs');
 var path = require('path');
-var languages = require ('./languages.js');
-var languagesJSON = require('./languages.json');
-var eventTypesJson = require('./eventTypes.json');
 var filesToExclude = [
     "test.json",
     "readme.md",
