@@ -179,6 +179,11 @@ module.exports = yeoman.Base.extend({
     }
   },
 
+  //------------------------------
+  //------------------------------
+  // Function to show the relevant templates to the user
+  //------------------------------
+  //------------------------------
   _showRelevantTemplates: function(templatesToShow) {
     var languageToUse = "";
 
@@ -236,6 +241,11 @@ module.exports = yeoman.Base.extend({
       });;
   },
   
+  //------------------------------
+  //------------------------------
+  // Function to download the files for the template
+  //------------------------------
+  //------------------------------
   _downloadTemplate: function (templateToUse, urlToUse, functionName) {
 
     var options = {
